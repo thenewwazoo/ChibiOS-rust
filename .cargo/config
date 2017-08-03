@@ -1,0 +1,27 @@
+
+[target.thumbv6m-none-eabi]
+rustflags = [
+  "-C", "link-arg=-Wl,-Map=memory.map",
+  "-C", "link-arg=-nostartfiles",
+  "-C", "link-arg=-nostdlib",
+  "-C", "link-arg=-Wl,--gc-sections",
+  "-C", "link-arg=-Tlayout.ld",
+]
+
+[target.thumbv7m-none-eabi]
+rustflags = [
+  "-C", "link-arg=-Wl,-Map=memory.map",
+  "-C", "link-arg=-nostartfiles",
+  "-C", "link-arg=-nostdlib",
+  "-C", "link-arg=-Wl,--gc-sections",
+  "-C", "link-arg=-Tlayout.ld",
+]
+
+[target.thumbv7em-none-eabi]
+rustflags = [
+  "-C", "link-arg=-Wl,-Map=memory.map",
+  "-C", "link-arg=-nostartfiles",
+  "-C", "link-arg=-nostdlib",
+  "-C", "link-arg=-Wl,--gc-sections",
+  "-C", "link-arg=-Tlayout.ld",
+]
