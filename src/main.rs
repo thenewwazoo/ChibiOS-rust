@@ -25,14 +25,15 @@ pub extern "C" fn __aeabi_unwind_cpp_pr1() -> () {
 }
 
 extern "C" {
-    fn _estack();
+    fn __process_stack_end__();
+    fn Reset_Handler();
 }
 
 #[link_section=".vectors"]
 #[allow(non_upper_case_globals)]
 #[no_mangle]
-pub static ISRVectors: [Option<unsafe extern "C" fn()>; 16] = [Some(_estack), // Stack pointer
-                                                               Some(startup), // Reset
+pub static ISRVectors: [Option<unsafe extern "C" fn()>; 16] = [Some(__process_stack_end__), // Stack pointer
+                                                               Some(Reset_Handler),
                                                                None, // Reserved
                                                                None, // Reserved
                                                                None, // Reserved
@@ -50,18 +51,11 @@ pub static ISRVectors: [Option<unsafe extern "C" fn()>; 16] = [Some(_estack), //
 ];
 
 #[start]
-fn lang_start(_: isize, _: *const *const u8) -> isize {
-    unsafe {
-        startup();
-    }
+fn main(_: isize, _: *const *const u8) -> isize {
+    user_main();
     0
 }
 
-pub unsafe extern "C" fn startup() {
-    main();
-}
-
-pub fn main() {
-    loop {
-    }
+fn user_main() {
+    loop {}
 }
