@@ -1,8 +1,17 @@
+
+#![allow(non_upper_case_globals)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+
 #![feature(lang_items,asm,start,compiler_builtins_lib)]
 #![no_std]
 #![crate_type="staticlib"]
 
+extern crate cty;
 extern crate compiler_builtins;
+
+#[cfg(feature="cmsis_os")]
+include!(concat!(env!("OUT_DIR"), "/cmsis_os.rs"));
 
 #[lang="eh_personality"]
 extern "C" fn eh_personality() {}

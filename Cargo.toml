@@ -6,10 +6,11 @@ build = "build.rs"
 
 [build-dependencies]
 gcc = "0.3"
-#bindgen = "0.26.3"
+bindgen = "0.26.3"
 
 [dependencies]
 compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
+cty = "0.1"
 
 [features]
 # Set a default chip like so. N.B. that specifying --feature on the command line
@@ -18,3 +19,5 @@ compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-built
 
 stm32f051x8 = []
 stm32f407xg = []
+
+cmsis_os = []

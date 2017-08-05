@@ -1,12 +1,24 @@
 use std::env;
 use std::fs;
 use std::os::unix::fs::symlink;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+extern crate bindgen;
 extern crate gcc;
 
 fn main() {
 
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+
     let mut builder = gcc::Config::new();
+
+    #[cfg(feature="cmsis_os")]
+    let bindings = bindgen::Builder::default()
+        .header("./ChibiOS/os/common/abstractions/cmsis_os/cmsis_os.h")
+        .ctypes_prefix("cty");
+
+    #[cfg(feature="cmsis_os")]
+    builder.include("./ChibiOS/os/common/abstractions/cmsis_os");
 
     // from os/rt/rt.mk, KERNSRC
     let os_src_files = [
@@ -34,6 +46,9 @@ fn main() {
     for os_src_file in os_src_files.iter() {
         builder.file(os_src_file);
     }
+
+    #[cfg(feature="cmsis_os")]
+    builder.file("./ChibiOS/os/common/abstractions/cmsis_os/cmsis_os.c");
 
     #[cfg(feature="stm32f407xg")]
     let port_src_files = [
@@ -72,15 +87,18 @@ fn main() {
 
     let include_dirs = [
         "./",                               // for chconf.h
-        "ChibiOS/os/license",
-        "ChibiOS/os/various",
-        "ChibiOS/os/rt/include",            // KERNINC, from os/rt/rt.mk
-        "ChibiOS/os/common/oslib/include",  // KERNINC, from os/rt/rt.mk
+        "./ChibiOS/os/license",
+        "./ChibiOS/os/various",
+        "./ChibiOS/os/rt/include",            // KERNINC, from os/rt/rt.mk
+        "./ChibiOS/os/common/oslib/include",  // KERNINC, from os/rt/rt.mk
     ];
 
     for include_dir in include_dirs.iter() {
         builder.include(include_dir);
     }
+
+    #[cfg(feature="cmsis_os")]
+    let bindings = bindings.clang_args(include_dirs.iter().map(|d| format!("-I{}", d)));
 
     #[cfg(feature="stm32f407xg")]
     let port_include_dirs = [
@@ -105,6 +123,9 @@ fn main() {
     for include_dir in port_include_dirs.iter() {
         builder.include(include_dir);
     }
+
+    #[cfg(feature="cmsis_os")]
+    let bindings = bindings.clang_args(port_include_dirs.iter().map(|d| format!("-I{}", d)));
 
     let defines = [
         ("THUMB_PRESENT", None),                              // CFLAGS, because USE_THUMB is set, rules.mk
@@ -146,7 +167,28 @@ fn main() {
     fs::remove_file(ld_path.join("layout.ld")).expect("could not remove old linker file symlink");
     symlink(ld_file, ld_path.join("layout.ld")).expect("Could not create linker file symlink!");
 
+    #[cfg(feature="cmsis_os")]
+    {
+        #[cfg(feature="stm32f407xg")]
+        let bindings = bindings.clang_arg("-DSTM32F407xG");
+        #[cfg(feature="stm32f051x8")]
+        let bindings = bindings.clang_arg("-DSTM32F051x8");
+        bindings
+            .generate()
+            .expect("unable to generate cmsis bindings")
+            .write_to_file(out_dir.join("cmsis_os.rs"))
+            .expect("unable to write cmsis bindings");
+        std::process::Command::new("sed")
+            .args(["-i", "", "-e", r"s/::std::os::raw::(c_\w+)/::libc::\1/g", out_dir.join("cmsis_os.rs").to_str().unwrap()].iter())
+            .output()
+            .expect("filed to munge bindings file");
+        std::process::Command::new("sed")
+            .args(["-i", "", "-e", "s/::std::/::core::/g", out_dir.join("cmsis_os.rs").to_str().unwrap()].iter())
+            .output()
+            .expect("filed to munge bindings file");
+    }
+
     println!("cargo:rustc-link-search=native={}", ld_path.to_str().unwrap());
-    println!("cargo:rustc-link-search=native={}", &env::var("OUT_DIR").unwrap());
+    println!("cargo:rustc-link-search=native={}", out_dir.to_str().unwrap());
     println!("cargo:rerun-if-changed=build.rs");
 }
