@@ -17,8 +17,7 @@ fn main() {
         .header("./ChibiOS/os/common/abstractions/cmsis_os/cmsis_os.h")
         .ctypes_prefix("cty");
 
-    #[cfg(feature="cmsis_os")]
-    builder.include("./ChibiOS/os/common/abstractions/cmsis_os");
+    #[cfg(feature = "cmsis_os")] builder.include("./ChibiOS/os/common/abstractions/cmsis_os");
 
     // from os/rt/rt.mk, KERNSRC
     let os_src_files = [
@@ -47,7 +46,7 @@ fn main() {
         builder.file(os_src_file);
     }
 
-    #[cfg(feature="cmsis_os")]
+    #[cfg(feature = "cmsis_os")]
     builder.file("./ChibiOS/os/common/abstractions/cmsis_os/cmsis_os.c");
 
     #[cfg(feature="stm32f407xg")]
@@ -74,9 +73,9 @@ fn main() {
 
     let flags = [
         "-mno-thumb-interwork", // CFLAGS, because USB_THUMB is set
-        "-ffunction-sections",  // from os/common/startup/ARMCMx/compilers/GCC/rules.mk
-        "-fdata-sections",      // from os/common/startup/ARMCMx/compilers/GCC/rules.mk
-        "-fno-common",          // from os/common/startup/ARMCMx/compilers/GCC/rules.mk
+        "-ffunction-sections", // from os/common/startup/ARMCMx/compilers/GCC/rules.mk
+        "-fdata-sections", // from os/common/startup/ARMCMx/compilers/GCC/rules.mk
+        "-fno-common", // from os/common/startup/ARMCMx/compilers/GCC/rules.mk
         "-fomit-frame-pointer",
         "-falign-functions=16",
     ];
@@ -138,13 +137,13 @@ fn main() {
 
     #[cfg(feature="stm32f407xg")]
     let port_defines = [
-        ("STM32F407xx", None),      // UDEFS from RT-ARMCM4-GENERIC demo Makefile
+        ("STM32F407xx", None), // UDEFS from RT-ARMCM4-GENERIC demo Makefile
         ("THUMB", None),
     ];
 
     #[cfg(feature="stm32f051x8")]
     let port_defines = [
-        ("STM32F051x8", None),      // UDEFS from RT-ARMCM0-GENERIC demo Makefile
+        ("STM32F051x8", None), // UDEFS from RT-ARMCM0-GENERIC demo Makefile
         ("THUMB", None),
     ];
 
@@ -164,10 +163,13 @@ fn main() {
     #[cfg(feature="stm32f407xg")]
     let ld_file = "STM32F407xG.ld";
 
-    fs::remove_file(ld_path.join("layout.ld")).expect("could not remove old linker file symlink");
-    symlink(ld_file, ld_path.join("layout.ld")).expect("Could not create linker file symlink!");
+    match fs::remove_file(ld_path.join("layout.ld")) {
+        Err(_) => println!("could not remove old linker file symlink"),
+        _ => {}
+    };
+    symlink(ld_file, ld_path.join("layout.ld")).expect("Could not create symlink!");
 
-    #[cfg(feature="cmsis_os")]
+    #[cfg(feature = "cmsis_os")]
     {
         #[cfg(feature="stm32f407xg")]
         let bindings = bindings.clang_arg("-DSTM32F407xG");
@@ -179,16 +181,38 @@ fn main() {
             .write_to_file(out_dir.join("cmsis_os.rs"))
             .expect("unable to write cmsis bindings");
         std::process::Command::new("sed")
-            .args(["-i", "", "-e", r"s/::std::os::raw::(c_\w+)/::libc::\1/g", out_dir.join("cmsis_os.rs").to_str().unwrap()].iter())
+            .args(
+                [
+                    "-i",
+                    "",
+                    "-e",
+                    r"s/::std::os::raw::(c_\w+)/::libc::\1/g",
+                    out_dir.join("cmsis_os.rs").to_str().unwrap(),
+                ].iter(),
+            )
             .output()
             .expect("filed to munge bindings file");
         std::process::Command::new("sed")
-            .args(["-i", "", "-e", "s/::std::/::core::/g", out_dir.join("cmsis_os.rs").to_str().unwrap()].iter())
+            .args(
+                [
+                    "-i",
+                    "",
+                    "-e",
+                    "s/::std::/::core::/g",
+                    out_dir.join("cmsis_os.rs").to_str().unwrap(),
+                ].iter(),
+            )
             .output()
             .expect("filed to munge bindings file");
     }
 
-    println!("cargo:rustc-link-search=native={}", ld_path.to_str().unwrap());
-    println!("cargo:rustc-link-search=native={}", out_dir.to_str().unwrap());
+    println!(
+        "cargo:rustc-link-search=native={}",
+        ld_path.to_str().unwrap()
+    );
+    println!(
+        "cargo:rustc-link-search=native={}",
+        out_dir.to_str().unwrap()
+    );
     println!("cargo:rerun-if-changed=build.rs");
 }
