@@ -1,6 +1,6 @@
 [package]
-name = "chibitest"
-version = "0.1.0"
+name = "ChibiOS-rust"
+version = "0.2.0"
 authors = ["Brandon Matthews <bmatthews@zipcar.com>"]
 build = "build.rs"
 
