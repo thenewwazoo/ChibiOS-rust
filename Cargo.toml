@@ -17,7 +17,8 @@ cty = "0.1"
 #  will *add* to the default, and not override it.
 #default = ["stm32f051x8"]
 
-stm32f051x8 = []
-stm32f407xg = []
+thumbv6m = []
+thumbv7m = []
 
-cmsis_os = []
+stm32f051x8 = ["thumbv6m"]
+stm32f407xg = ["thumbv7m"]

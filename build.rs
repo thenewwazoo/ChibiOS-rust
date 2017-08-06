@@ -12,12 +12,13 @@ fn main() {
 
     let mut builder = gcc::Config::new();
 
-    #[cfg(feature="cmsis_os")]
     let bindings = bindgen::Builder::default()
         .header("./ChibiOS/os/common/abstractions/cmsis_os/cmsis_os.h")
-        .ctypes_prefix("cty");
+        .ctypes_prefix("cty")
+        .use_core()
+        .trust_clang_mangling(false);
 
-    #[cfg(feature = "cmsis_os")] builder.include("./ChibiOS/os/common/abstractions/cmsis_os");
+    builder.include("./ChibiOS/os/common/abstractions/cmsis_os");
 
     // from os/rt/rt.mk, KERNSRC
     let os_src_files = [
@@ -46,7 +47,6 @@ fn main() {
         builder.file(os_src_file);
     }
 
-    #[cfg(feature = "cmsis_os")]
     builder.file("./ChibiOS/os/common/abstractions/cmsis_os/cmsis_os.c");
 
     #[cfg(feature="stm32f407xg")]
@@ -56,6 +56,7 @@ fn main() {
         "./ChibiOS/os/common/ports/ARMCMx/compilers/GCC/chcoreasm_v7m.S",
         "./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/crt0_v7m.S",
         "./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/crt1.c",
+        //"./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/vectors.c",
     ];
 
     #[cfg(feature="stm32f051x8")]
@@ -65,6 +66,7 @@ fn main() {
         "./ChibiOS/os/common/ports/ARMCMx/compilers/GCC/chcoreasm_v6m.S",
         "./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/crt0_v6m.S",
         "./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/crt1.c",
+        //"./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/vectors.c",
     ];
 
     for port_src_file in port_src_files.iter() {
@@ -96,7 +98,6 @@ fn main() {
         builder.include(include_dir);
     }
 
-    #[cfg(feature="cmsis_os")]
     let bindings = bindings.clang_args(include_dirs.iter().map(|d| format!("-I{}", d)));
 
     #[cfg(feature="stm32f407xg")]
@@ -123,7 +124,6 @@ fn main() {
         builder.include(include_dir);
     }
 
-    #[cfg(feature="cmsis_os")]
     let bindings = bindings.clang_args(port_include_dirs.iter().map(|d| format!("-I{}", d)));
 
     let defines = [
@@ -169,42 +169,39 @@ fn main() {
     };
     symlink(ld_file, ld_path.join("layout.ld")).expect("Could not create symlink!");
 
-    #[cfg(feature = "cmsis_os")]
-    {
-        #[cfg(feature="stm32f407xg")]
-        let bindings = bindings.clang_arg("-DSTM32F407xG");
-        #[cfg(feature="stm32f051x8")]
-        let bindings = bindings.clang_arg("-DSTM32F051x8");
-        bindings
-            .generate()
-            .expect("unable to generate cmsis bindings")
-            .write_to_file(out_dir.join("cmsis_os.rs"))
-            .expect("unable to write cmsis bindings");
-        std::process::Command::new("sed")
-            .args(
-                [
-                    "-i",
-                    "",
-                    "-e",
-                    r"s/::std::os::raw::(c_\w+)/::libc::\1/g",
-                    out_dir.join("cmsis_os.rs").to_str().unwrap(),
-                ].iter(),
-            )
-            .output()
-            .expect("filed to munge bindings file");
-        std::process::Command::new("sed")
-            .args(
-                [
-                    "-i",
-                    "",
-                    "-e",
-                    "s/::std::/::core::/g",
-                    out_dir.join("cmsis_os.rs").to_str().unwrap(),
-                ].iter(),
-            )
-            .output()
-            .expect("filed to munge bindings file");
-    }
+    #[cfg(feature="stm32f407xg")]
+    let bindings = bindings.clang_arg("-DSTM32F407xG");
+    #[cfg(feature="stm32f051x8")]
+    let bindings = bindings.clang_arg("-DSTM32F051x8");
+    bindings
+        .generate()
+        .expect("unable to generate cmsis bindings")
+        .write_to_file(out_dir.join("cmsis_os.rs"))
+        .expect("unable to write cmsis bindings");
+    std::process::Command::new("sed")
+        .args(
+            [
+                "-i",
+                "",
+                "-e",
+                r"s/::std::os::raw::(c_\w+)/::libc::\1/g",
+                out_dir.join("cmsis_os.rs").to_str().unwrap(),
+            ].iter(),
+        )
+        .output()
+        .expect("filed to munge bindings file");
+    std::process::Command::new("sed")
+        .args(
+            [
+                "-i",
+                "",
+                "-e",
+                "s/::std::/::core::/g",
+                out_dir.join("cmsis_os.rs").to_str().unwrap(),
+            ].iter(),
+        )
+        .output()
+        .expect("filed to munge bindings file");
 
     println!(
         "cargo:rustc-link-search=native={}",
