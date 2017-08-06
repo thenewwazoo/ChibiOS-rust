@@ -1,7 +1,7 @@
 
 use chibios;
 
-unsafe extern "C" fn thread_one(arg: chibios::RawOSArg) {
+extern "C" fn thread_one(arg: chibios::RawOSArg) {
     loop {}
 }
 

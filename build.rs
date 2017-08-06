@@ -212,4 +212,5 @@ fn main() {
         out_dir.to_str().unwrap()
     );
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=chconf.h");
 }

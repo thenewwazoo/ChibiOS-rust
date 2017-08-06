@@ -24,19 +24,19 @@ impl<T> OptPtr<T> for Option<T> {
     }
 }
 
-pub struct OsThreadDef<'a> {
+pub struct OsThreadDef {
     pthread: OsPThread,
     priority: bindings::osPriority,
     stack_size: u32,
-    name: &'a str,
+    name: &'static str,
 }
 
-impl<'a> OsThreadDef<'a> {
+impl OsThreadDef {
     pub fn new(
         thread_func: OsPThread,
         prio: bindings::osPriority,
         stack_size: u32,
-        name: &'a str,
+        name: &'static str,
     ) -> Self {
         OsThreadDef {
             pthread: thread_func,
@@ -47,7 +47,7 @@ impl<'a> OsThreadDef<'a> {
     }
 }
 
-impl<'a> From<OsThreadDef<'a>> for bindings::osThreadDef_t {
+impl From<OsThreadDef> for bindings::osThreadDef_t {
     fn from(t: OsThreadDef) -> Self {
         bindings::osThreadDef_t {
             pthread: Some(t.pthread),
