@@ -1,7 +1,7 @@
 
 use chibios;
 
-extern "C" fn thread_one(arg: chibios::RawOSArg) {
+extern "C" fn thread_one(_: chibios::RawOSArg) {
     loop {}
 }
 
@@ -12,16 +12,16 @@ pub fn user_main() {
         thread_one,
         chibios::osPriority::osPriorityNormal,
         0x400,
-        "thread_one",
+        "thread_one\0",
     );
 
     unsafe {
         chibios::osKernelInitialize();
     }
 
-    let thread_one_id = unsafe { chibios::osThreadCreate(&thread_one_def.into(), null_mut) };
+    unsafe { chibios::osThreadCreate(&thread_one_def.into(), null_mut) };
 
-    let kernel_status = unsafe { chibios::osKernelStart() };
+    unsafe { chibios::osKernelStart() };
 
     loop {}
 }
