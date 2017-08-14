@@ -1,6 +1,6 @@
 [package]
-name = "ChibiOS-rust"
-version = "0.2.0"
+name = "chibi-os-rust"
+version = "0.3.0"
 authors = ["Brandon Matthews <bmatthews@zipcar.com>"]
 build = "build.rs"
 
@@ -9,8 +9,11 @@ gcc = "0.3"
 bindgen = "0.26.3"
 
 [dependencies]
-compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
 cty = "0.1"
+
+[dependencies.cortex-m-rt]
+features = ["abort-on-panic"]
+version = "0.3.0"
 
 [features]
 # Set a default chip like so. N.B. that specifying --feature on the command line
@@ -22,3 +25,5 @@ thumbv7m = []
 
 stm32f051x8 = ["thumbv6m"]
 stm32f407xg = ["thumbv7m"]
+
+cortex_alternate_switch = ["thumbv6m"]

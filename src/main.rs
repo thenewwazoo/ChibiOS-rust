@@ -1,37 +1,24 @@
 
-#![allow(non_upper_case_globals)]
-
-#![feature(lang_items,asm,start,compiler_builtins_lib)]
+#![feature(used)]
 #![no_std]
-#![crate_type="staticlib"]
 
-extern crate compiler_builtins;
+#[macro_use(exception)]
+extern crate cortex_m_rt;
 
 mod chibios;
 mod app;
 
-#[lang = "eh_personality"]
-extern "C" fn eh_personality() {}
+#[link_section = ".vector_table.interrupts"]
+#[used]
+static INTERRUPTS: [extern "C" fn(); 240] = [default_intr_handler; 240];
 
-#[lang = "panic_fmt"]
-pub extern "C" fn panic_fmt(_fmt: &core::fmt::Arguments, _file_line: &(&'static str, usize)) -> ! {
+extern "C" fn default_intr_handler() {
     loop {}
 }
 
-#[no_mangle]
-pub extern "C" fn __aeabi_unwind_cpp_pr0() -> () {
-    loop {}
-}
-
-#[no_mangle]
-pub extern "C" fn __aeabi_unwind_cpp_pr1() -> () {
-    loop {}
-}
-
-// These handlers are declared in os/common/startup/ARMCMx/compilers/GCC/vectors.c
+// These exception handlers are declared in os/common/startup/ARMCMx/compilers/GCC/vectors.c
 extern "C" {
-    fn __main_stack_end__();
-    fn Reset_Handler();
+    // fn Reset_Handler(); // declared in vectors.c, but obviated by cortex_m_rt
     fn NMI_Handler();
     // fn HardFault_Handler();
     // fn MemManage_Handler();
@@ -40,38 +27,23 @@ extern "C" {
     #[cfg(feature="thumbv7m")]
     fn SVC_Handler();
     // fn DebugMon_Handler();
-    #[cfg(feature="thumbv7m")]
+    #[used]
     fn PendSV_Handler();
 // fn SysTick_Handler(); // see e.g. demos/various/NIL-ARMCM0-GENERIC/main.c, CH_IRQ_HANDLER(SysTick_Handler)
 }
 
-#[link_section = ".vectors"]
-#[no_mangle]
-pub static ISRVectors: [Option<unsafe extern "C" fn()>; 16] = [
-    Some(__main_stack_end__), // Stack pointer
-    Some(Reset_Handler),
-    Some(NMI_Handler),
-    None, // HardFault_Handler
-    None, // MemManage_Handler
-    None, // BusFault_Handler
-    None, // UsageFault_Handler
-    None, // Reserved
-    None, // Reserved
-    None, // Reserved
-    None, // Reserved
-    #[cfg(feature = "thumbv7m")]
-    Some(SVC_Handler),
-    #[cfg(not(feature = "thumbv7m"))]
-    None, // SVC_Handler
-    None, // DebugMon_Handler
-    None, // Reserved
-    None, // PendSV_Handler if CORTEX_ALTERNATE_SWITCH is set in chconf.h
-    None, // SysTick_Handler
-];
+fn wrap_nmi() {
+    unsafe {
+        NMI_Handler();
+    }
+}
 
+exception!(NMI, wrap_nmi);
+#[cfg(feature = "thumbv7m")]
+exception!(SVCALL, SVC_Handler);
+#[cfg(feature = "cortex_alternate_switch")]
+exception!(PENDSV, PendSV_Handler);
 
-#[start]
-fn main(_: isize, _: *const *const u8) -> isize {
-    app::user_main();
-    0
+fn main() {
+    app::user_main()
 }

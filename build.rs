@@ -1,7 +1,5 @@
 use std::env;
-use std::fs;
-use std::os::unix::fs::symlink;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 extern crate bindgen;
 extern crate gcc;
@@ -54,9 +52,6 @@ fn main() {
         "./ChibiOS/os/common/ports/ARMCMx/chcore.c",
         "./ChibiOS/os/common/ports/ARMCMx/chcore_v7m.c",
         "./ChibiOS/os/common/ports/ARMCMx/compilers/GCC/chcoreasm_v7m.S",
-        "./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/crt0_v7m.S",
-        "./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/crt1.c",
-        //"./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/vectors.c",
     ];
 
     #[cfg(feature="stm32f051x8")]
@@ -64,9 +59,6 @@ fn main() {
         "./ChibiOS/os/common/ports/ARMCMx/chcore.c",
         "./ChibiOS/os/common/ports/ARMCMx/chcore_v6m.c",
         "./ChibiOS/os/common/ports/ARMCMx/compilers/GCC/chcoreasm_v6m.S",
-        "./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/crt0_v6m.S",
-        "./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/crt1.c",
-        //"./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/vectors.c",
     ];
 
     for port_src_file in port_src_files.iter() {
@@ -151,28 +143,16 @@ fn main() {
         builder.define(def_key, def_val);
     }
 
+    builder.pic(false);
     builder.archiver("arm-none-eabi-ar");
     builder.compile("libchibios.a");
-
-    // ld path from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
-    let ld_path = Path::new("./ChibiOS/os/common/startup/ARMCMx/compilers/GCC/ld/");
-
-    #[cfg(feature="stm32f051x8")]
-    let ld_file = "STM32F051x8.ld";
-
-    #[cfg(feature="stm32f407xg")]
-    let ld_file = "STM32F407xG.ld";
-
-    match fs::remove_file(ld_path.join("layout.ld")) {
-        Err(_) => println!("could not remove old linker file symlink"),
-        _ => {}
-    };
-    symlink(ld_file, ld_path.join("layout.ld")).expect("Could not create symlink!");
 
     #[cfg(feature="stm32f407xg")]
     let bindings = bindings.clang_arg("-DSTM32F407xG");
     #[cfg(feature="stm32f051x8")]
     let bindings = bindings.clang_arg("-DSTM32F051x8");
+    #[cfg(feature="cortex_alternate_switch")]
+    let bindings = bindings.clang_arg("-DCORTEX_ALTERNATE_SWITCH=TRUE");
     bindings
         .generate()
         .expect("unable to generate cmsis bindings")
@@ -203,10 +183,6 @@ fn main() {
         .output()
         .expect("filed to munge bindings file");
 
-    println!(
-        "cargo:rustc-link-search=native={}",
-        ld_path.to_str().unwrap()
-    );
     println!(
         "cargo:rustc-link-search=native={}",
         out_dir.to_str().unwrap()
