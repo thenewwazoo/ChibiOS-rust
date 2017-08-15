@@ -8,12 +8,12 @@ extern "C" fn thread_one(_: chibios::RawOSArg) {
 pub fn user_main() {
     let null_mut: chibios::RawOSArgMut = 0 as chibios::RawOSArgMut;
 
-    let thread_one_def = chibios::OsThreadDef::new(
+    let  thread_one_def: chibios::OsThreadDef = chibios::OsThreadDef::new(
         thread_one,
         chibios::osPriority::osPriorityNormal,
         0x400,
-        "thread_one\0",
-    );
+        szstr!("thread_one"),
+        );
 
     unsafe {
         chibios::osKernelInitialize();

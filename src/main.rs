@@ -2,9 +2,10 @@
 #![feature(used)]
 #![no_std]
 
-#[macro_use(exception)]
 extern crate cortex_m_rt;
 
+#[macro_use]
+mod macros;
 mod chibios;
 mod app;
 
@@ -32,17 +33,12 @@ extern "C" {
 // fn SysTick_Handler(); // see e.g. demos/various/NIL-ARMCM0-GENERIC/main.c, CH_IRQ_HANDLER(SysTick_Handler)
 }
 
-fn wrap_nmi() {
-    unsafe {
-        NMI_Handler();
-    }
-}
-
-exception!(NMI, wrap_nmi);
-#[cfg(feature = "thumbv7m")]
-exception!(SVCALL, SVC_Handler);
+#[cfg(feature="port_thumbv6m")]
+c_exception!(NMI, NMI_Handler);
+#[cfg(feature = "port_thumbv7m")]
+c_exception!(SVCALL, SVC_Handler);
 #[cfg(feature = "cortex_alternate_switch")]
-exception!(PENDSV, PendSV_Handler);
+c_exception!(PENDSV, PendSV_Handler);
 
 fn main() {
     app::user_main()
