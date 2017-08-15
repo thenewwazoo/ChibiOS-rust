@@ -4,7 +4,25 @@ use std::path::PathBuf;
 extern crate bindgen;
 extern crate gcc;
 
+/// In order to build ChibiOS and generate bindings, ChibiOS must know about its chip type,
+/// its device type, and its port. Each of these things controls slightly different aspects
+/// of compilation. The port influences what files are compiled. The device and the chip
+/// are passed into ChibiOS as flags.
+///
+/// The port files are consistent across device architectures, e.g. thumbv6m, thumbv7m, etc.
+/// You can make your device selection depend upon its port (read: architecture) to include
+/// the port files for compilation.
+///
+/// The device
+///
+/// In order to determine this, the easiest way is to inspect a demo Makefile and familiarize
+/// yourself with the flags that are passed there, and how files are selected for compilation.
+/// Once you've done that, you can inspect the device _type_'s `cmparams.h` file for a list
+/// of supported chips.
 fn main() {
+
+    #[cfg(not(any(feature="port_thumbv6m",feature="port_thumbv7m")))]
+    compile_error!("You must specify at least one target CPU feature. See Cargo.toml.");
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
@@ -47,14 +65,14 @@ fn main() {
 
     builder.file("./ChibiOS/os/common/abstractions/cmsis_os/cmsis_os.c");
 
-    #[cfg(feature="stm32f407xg")]
+    #[cfg(feature="port_thumbv7m")]
     let port_src_files = [
         "./ChibiOS/os/common/ports/ARMCMx/chcore.c",
         "./ChibiOS/os/common/ports/ARMCMx/chcore_v7m.c",
         "./ChibiOS/os/common/ports/ARMCMx/compilers/GCC/chcoreasm_v7m.S",
     ];
 
-    #[cfg(feature="stm32f051x8")]
+    #[cfg(feature="port_thumbv6m")]
     let port_src_files = [
         "./ChibiOS/os/common/ports/ARMCMx/chcore.c",
         "./ChibiOS/os/common/ports/ARMCMx/chcore_v6m.c",
@@ -84,6 +102,9 @@ fn main() {
         "./ChibiOS/os/various",
         "./ChibiOS/os/rt/include",            // KERNINC, from os/rt/rt.mk
         "./ChibiOS/os/common/oslib/include",  // KERNINC, from os/rt/rt.mk
+        "ChibiOS/os/common/ports/ARMCMx",                  // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v?m.mk
+        "ChibiOS/os/common/ports/ARMCMx/compilers/GCC",    // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v?m.mk
+        "ChibiOS/os/common/ext/CMSIS/include",                 // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_*.mk
     ];
 
     for include_dir in include_dirs.iter() {
@@ -92,32 +113,25 @@ fn main() {
 
     let bindings = bindings.clang_args(include_dirs.iter().map(|d| format!("-I{}", d)));
 
-    #[cfg(feature="stm32f407xg")]
-    let port_include_dirs = [
-        "ChibiOS/os/common/ports/ARMCMx",                  // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
-        "ChibiOS/os/common/ports/ARMCMx/compilers/GCC",    // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
-        "ChibiOS/os/common/startup/ARMCMx/compilers/GCC",      // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
+    #[cfg(feature="device_stm32f4xx")]
+    let device_include_dirs = [
         "ChibiOS/os/common/startup/ARMCMx/devices/STM32F4xx",  // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
-        "ChibiOS/os/common/ext/CMSIS/include",                 // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
         "ChibiOS/os/common/ext/CMSIS/ST/STM32F4xx",            // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
     ];
 
-    #[cfg(feature="stm32f051x8")]
-    let port_include_dirs = [
-        "ChibiOS/os/common/ports/ARMCMx",                  // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v6m.mk
-        "ChibiOS/os/common/ports/ARMCMx/compilers/GCC",    // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v6m.mk
-        "ChibiOS/os/common/startup/ARMCMx/compilers/GCC",       // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f0xx.mk
+    #[cfg(feature="device_stm32f0xx")]
+    let device_include_dirs = [
         "ChibiOS/os/common/startup/ARMCMx/devices/STM32F0xx",   // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f0xx.mk
-        "ChibiOS/os/common/ext/CMSIS/include",                  // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f0xx.mk
         "ChibiOS/os/common/ext/CMSIS/ST/STM32F0xx",             // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f0xx.mk
     ];
 
-    for include_dir in port_include_dirs.iter() {
+    for include_dir in device_include_dirs.iter() {
         builder.include(include_dir);
     }
 
-    let bindings = bindings.clang_args(port_include_dirs.iter().map(|d| format!("-I{}", d)));
+    let bindings = bindings.clang_args(device_include_dirs.iter().map(|d| format!("-I{}", d)));
 
+    // These may require parameterization
     let defines = [
         ("THUMB_PRESENT", None),                              // CFLAGS, because USE_THUMB is set, rules.mk
         ("THUMB_NO_INTERWORKING", None),                      // CFLAGS, because USB_THUMB is set, rules.mk
@@ -143,14 +157,19 @@ fn main() {
         builder.define(def_key, def_val);
     }
 
+    // These defines mirror those above; these are for bindgen, and the above are for
+    // building libchibios. Unfortunately, because bindings::clang_arg() returns Self
+    // and not &Self like gcc::define does, we cannot loop, and so must set each flag
+    // "manually".
+    #[cfg(feature="stm32f407xg")]
+    let bindings = bindings.clang_arg("-DSTM32F407xx");
+    #[cfg(feature="stm32f051x8")]
+    let bindings = bindings.clang_arg("-DSTM32F051x8");
+
     builder.pic(false);
     builder.archiver("arm-none-eabi-ar");
     builder.compile("libchibios.a");
 
-    #[cfg(feature="stm32f407xg")]
-    let bindings = bindings.clang_arg("-DSTM32F407xG");
-    #[cfg(feature="stm32f051x8")]
-    let bindings = bindings.clang_arg("-DSTM32F051x8");
     #[cfg(feature="cortex_alternate_switch")]
     let bindings = bindings.clang_arg("-DCORTEX_ALTERNATE_SWITCH=TRUE");
     bindings
@@ -158,6 +177,7 @@ fn main() {
         .expect("unable to generate cmsis bindings")
         .write_to_file(out_dir.join("cmsis_os.rs"))
         .expect("unable to write cmsis bindings");
+    /*
     std::process::Command::new("sed")
         .args(
             [
@@ -182,6 +202,7 @@ fn main() {
         )
         .output()
         .expect("filed to munge bindings file");
+    */
 
     println!(
         "cargo:rustc-link-search=native={}",

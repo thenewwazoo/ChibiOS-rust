@@ -20,12 +20,13 @@ extern "C" fn default_intr_handler() {
 // These exception handlers are declared in os/common/startup/ARMCMx/compilers/GCC/vectors.c
 extern "C" {
     // fn Reset_Handler(); // declared in vectors.c, but obviated by cortex_m_rt
+    #[cfg(feature="port_thumbv6m")]
     fn NMI_Handler();
     // fn HardFault_Handler();
     // fn MemManage_Handler();
     // fn BusFault_Handler();
     // fn UsageFault_Handler();
-    #[cfg(feature="thumbv7m")]
+    #[cfg(feature="port_thumbv7m")]
     fn SVC_Handler();
     // fn DebugMon_Handler();
     #[used]

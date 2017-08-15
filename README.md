@@ -1,7 +1,7 @@
 
-This is a naive attempt to get ChibiOS useful in Rust.
+ChibiOS is pretty cool. Rust is pretty cool.
 
-It is ChibiOS and bindgen layered atop [bare-minimum-rust](https://github.com/thenewwazoo/bare-minimum-rust).
+This is an attempt to get ChibiOS useful via Rust. Or maybe it's to make Rust useful on ChibiOS.
 
 Setup
 -----
@@ -12,14 +12,33 @@ $ cargo install xargo
 $ brew install llvm # per https://rust-lang-nursery.github.io/rust-bindgen/requirements.html
 ```
 
+Update the `memory.x` file to reflect the layout of your hardware.
+
 Build
 -----
 
-Alas! Selecting your preferred hardware is currently kind of an ugly process. You'll need to dig into the ChibiOS makefiles a bit. A good starting point is a ChibiOS demo project. You'll also want to mess with `chconf.h` probably.
+Selecing your desired hardware is kind of an ugly process at the moment, and not very well
+fleshed-out. ChibiOS requires a few flags to specify the port (i.e. CPU type), which we need
+to pass in to the build script. As such, each CPU will need to get its own feature which will
+gate compilation of `libchibios.a`, manage `bindgen`, as well as set handlers in `main.rs`.
 
-If you want the CMSIS-RTOS bindings, also enable the `cmsis_os` feature.
+See [`Cargo.toml`](Cargo.toml) to dive into it. If you're not adding your own chip, the following
+are currently supported:
 
+* `stm32f407xg`
+* `stm32f051x8`
+
+Pass them to Cargo using the `--features` flag, e.g.
+
+```bash
+$ xargo build --target thumbv7m-none-eabi --features stm32f407xg
 ```
-$ git submodule update
-$ xargo build -vv --target thumbv6m-none-eabi --features=stm32f051x8,cmsis_os
+
+Use
+---
+
+I like openocd and gdb.
+
+```bash
+$ openocd -f board/stm32f0discovery.cfg -c '$_TARGETNAME configure -rtos auto' -c 'gdb_port 3333' # or whatever
 ```
