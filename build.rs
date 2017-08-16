@@ -125,6 +125,12 @@ fn main() {
         "ChibiOS/os/common/ext/CMSIS/ST/STM32F0xx",             // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f0xx.mk
     ];
 
+    #[cfg(feature="device_lpc177x_8x")]
+    let device_include_dirs = [
+        "ChibiOS/os/common/startup/ARMCMx/devices/LPC177x_8x/",
+        "ChibiOS/os/common/ext/CMSIS/NXP/LPC177x_8x/",
+    ];
+
     for include_dir in device_include_dirs.iter() {
         builder.include(include_dir);
     }
@@ -153,6 +159,11 @@ fn main() {
         ("THUMB", None),
     ];
 
+    #[cfg(feature="lpc1788fbd208")]
+    let port_defines = [
+        ("THUMB", None),
+    ];
+
     for &(def_key, def_val) in port_defines.iter() {
         builder.define(def_key, def_val);
     }
@@ -165,6 +176,8 @@ fn main() {
     let bindings = bindings.clang_arg("-DSTM32F407xx");
     #[cfg(feature="stm32f051x8")]
     let bindings = bindings.clang_arg("-DSTM32F051x8");
+    //#[cfg(feature="lpc1788fbd208")]
+    // no defines needed for this part
 
     builder.pic(false);
     builder.archiver("arm-none-eabi-ar");
@@ -177,32 +190,6 @@ fn main() {
         .expect("unable to generate cmsis bindings")
         .write_to_file(out_dir.join("cmsis_os.rs"))
         .expect("unable to write cmsis bindings");
-    /*
-    std::process::Command::new("sed")
-        .args(
-            [
-                "-i",
-                "",
-                "-e",
-                r"s/::std::os::raw::(c_\w+)/::libc::\1/g",
-                out_dir.join("cmsis_os.rs").to_str().unwrap(),
-            ].iter(),
-        )
-        .output()
-        .expect("filed to munge bindings file");
-    std::process::Command::new("sed")
-        .args(
-            [
-                "-i",
-                "",
-                "-e",
-                "s/::std::/::core::/g",
-                out_dir.join("cmsis_os.rs").to_str().unwrap(),
-            ].iter(),
-        )
-        .output()
-        .expect("filed to munge bindings file");
-    */
 
     println!(
         "cargo:rustc-link-search=native={}",

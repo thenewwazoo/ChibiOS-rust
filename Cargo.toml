@@ -28,13 +28,15 @@ version = "0.3.0"
 #  and not override it.
 #default = ["stm32f051x8"]
 
-stm32f051x8 = ["device_stm32f0xx"]
-stm32f407xg = ["device_stm32f4xx"]
+stm32f051x8     = ["device_stm32f0xx"]
+stm32f407xg     = ["device_stm32f4xx"]
+lpc1788fbd208   = ["device_lpc177x_8x"]
+
+device_stm32f0xx    = ["port_thumbv6m"]
+device_stm32f4xx    = ["port_thumbv7m"]
+device_lpc177x_8x   = ["port_thumbv7m"]
 
 cortex_alternate_switch = ["port_thumbv6m"]
-
-device_stm32f0xx = ["port_thumbv6m"]
-device_stm32f4xx = ["port_thumbv7m"]
 
 port_thumbv6m = []
 port_thumbv7m = []
