@@ -2,7 +2,7 @@ use std::env;
 use std::path::PathBuf;
 
 extern crate bindgen;
-extern crate gcc;
+extern crate cc;
 
 /// In order to build ChibiOS and generate bindings, ChibiOS must know about its chip type,
 /// its device type, and its port. Each of these things controls slightly different aspects
@@ -26,7 +26,7 @@ fn main() {
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    let mut builder = gcc::Config::new();
+    let mut builder = cc::Build::new();
 
     let bindings = bindgen::Builder::default()
         .header("./ChibiOS/os/common/abstractions/cmsis_os/cmsis_os.h")
@@ -53,10 +53,11 @@ fn main() {
         "./ChibiOS/os/rt/src/chevents.c",
         "./ChibiOS/os/rt/src/chmsg.c",
         "./ChibiOS/os/rt/src/chdynamic.c",
-        "./ChibiOS/os/common/oslib/src/chmboxes.c",
-        "./ChibiOS/os/common/oslib/src/chmemcore.c",
-        "./ChibiOS/os/common/oslib/src/chheap.c",
-        "./ChibiOS/os/common/oslib/src/chmempools.c",
+        "./ChibiOS/os/oslib/src/chmboxes.c",
+        "./ChibiOS/os/oslib/src/chfactory.c",
+        "./ChibiOS/os/oslib/src/chmemheaps.c",
+        "./ChibiOS/os/oslib/src/chmemcore.c",
+        "./ChibiOS/os/oslib/src/chmempools.c",
     ];
 
     for os_src_file in os_src_files.iter() {
@@ -101,10 +102,11 @@ fn main() {
         "./ChibiOS/os/license",
         "./ChibiOS/os/various",
         "./ChibiOS/os/rt/include",            // KERNINC, from os/rt/rt.mk
-        "./ChibiOS/os/common/oslib/include",  // KERNINC, from os/rt/rt.mk
-        "ChibiOS/os/common/ports/ARMCMx",                  // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v?m.mk
-        "ChibiOS/os/common/ports/ARMCMx/compilers/GCC",    // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v?m.mk
-        "ChibiOS/os/common/ext/CMSIS/include",                 // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_*.mk
+        "./ChibiOS/os/oslib/include",   // KERNINC, from os/rt/rt.mk
+        "./ChibiOS/os/common/ports/ARMCMx",                  // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v?m.mk
+        "./ChibiOS/os/common/ports/ARMCMx/compilers/GCC",    // PORTINC, from os/common/ports/ARMCMx/compilers/GCC/mk/port_v?m.mk
+        "./ChibiOS/os/common/ext/CMSIS/include",                 // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_*.mk
+        "./ChibiOS/os/common/ext/ARM/CMSIS/Core/Include"
     ];
 
     for include_dir in include_dirs.iter() {
@@ -115,8 +117,8 @@ fn main() {
 
     #[cfg(feature="device_stm32f4xx")]
     let device_include_dirs = [
-        "ChibiOS/os/common/startup/ARMCMx/devices/STM32F4xx",  // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
-        "ChibiOS/os/common/ext/CMSIS/ST/STM32F4xx",            // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
+        "./ChibiOS/os/common/startup/ARMCMx/devices/STM32F4xx",  // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
+        "./ChibiOS/os/common/ext/ST/STM32F4xx",            // STARTUPINC, from os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
     ];
 
     #[cfg(feature="device_stm32f0xx")]
