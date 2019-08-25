@@ -1,4 +1,3 @@
-
 use chibios;
 
 extern "C" fn thread_one(_: chibios::RawOSArg) {
